@@ -22,15 +22,23 @@ const AdminParticipants: React.FC = () => {
   const [eventFilter, setEventFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const fetchData = () => {
-    Promise.all([
-      api.get('/registrations').catch(() => ({ data: [] })),
-      api.get('/events').catch(() => ({ data: [] })),
-    ]).then(([regRes, evRes]) => {
+  const fetchData = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [regRes, evRes] = await Promise.all([
+        api.get('/registrations'),
+        api.get('/events'),
+      ]);
       setRegistrations(regRes.data);
       setEvents(evRes.data);
-    }).finally(() => setLoading(false));
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Could not load participants. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -76,6 +84,11 @@ const AdminParticipants: React.FC = () => {
 
       {loading ? (
         <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
+      ) : error ? (
+        <div className="text-center py-10 bg-white rounded-xl">
+          <p role="alert" className="text-red-600 mb-3">{error}</p>
+          <button onClick={fetchData} className="text-primary font-medium hover:text-primary-dark">Try again</button>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-10 bg-white rounded-xl"><Users className="w-10 h-10 text-gray-300 mx-auto mb-2" /><p className="text-gray-500">No participants found</p></div>
       ) : (
